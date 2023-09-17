@@ -39,6 +39,33 @@ popular searches from the internet as a whole. As you are typing
 with each keypress. It may even suggest "google.com" before you finish typing
 it.
 
+Event Detection:
+
+When you press the "g" key, the browser detects the keypress event, just as mentioned earlier. It then triggers various event listeners, including those associated with the input field and the browser's internal logic.
+Auto-complete Functionality:
+
+The browser's auto-complete functionality is designed to assist users in quickly accessing websites they've previously visited or popular websites. When you start typing a URL or search term in the address bar, the browser's auto-complete feature is activated.
+Algorithmic Suggestions:
+
+Depending on your browser's algorithm and settings (including whether you're in private/incognito mode), it generates suggestions for URLs or search queries based on several factors:
+Search History: The browser considers your browsing history to suggest previously visited websites that match your input.
+Bookmarks: Bookmarked websites are given priority and are suggested as you type.
+Cookies: If you've visited a website that uses cookies, the browser may suggest it based on your previous interactions.
+Popular Searches: The browser may also include suggestions based on popular or trending searches from the internet as a whole.
+Real-time Refinement:
+
+With each keypress, the browser's algorithms continuously update the suggestions in real-time. This means that as you type each letter of "google.com," the suggestions may change and become more accurate.
+Quick Suggestions:
+
+In some cases, the browser's auto-complete feature may even predict your input before you've finished typing. For example, if you've frequently visited "google.com," it may suggest it as soon as you type "g."
+User Interaction:
+
+You, as the user, can choose from the suggestions provided by the browser. You can either select one of the suggestions by clicking on it or continue typing your desired URL or search query.
+Privacy Considerations:
+
+In private or incognito mode, the browser typically limits the use of your browsing history and cookies for generating suggestions. This mode is designed to provide a more private browsing experience.
+
+
 The "enter" key bottoms out
 ---------------------------
 
@@ -95,6 +122,21 @@ connection, but historically has been over PS/2 or ADB connections.
 - This interrupt notifies the currently focused application of a 'key pressed'
   event.
 
+// continuation
+In the case of Virtual Keyboard (as in touch screen devices):
+
+When the user puts their finger on a modern capacitive touch screen, a tiny amount of current gets transferred to the finger. This completes the circuit through the electrostatic field of the conductive layer and creates a voltage drop at that point on the screen. The screen controller, also known as the touch controller, detects this change in voltage and raises an interrupt reporting the coordinates of the keypress.
+
+Once the touch controller registers the touch event, it sends the touch coordinates (X and Y) to the mobile operating system (OS).
+
+The mobile OS, such as Android or iOS, then interprets these touch coordinates and identifies the virtual keyboard element that was pressed.
+
+The OS notifies the currently focused application of a press event in one of its GUI elements, which, in this case, is the virtual keyboard application's button corresponding to the pressed key.
+
+The virtual keyboard application, upon receiving this notification, can then raise a software interrupt or event to send a 'key pressed' message back to the OS.
+
+This interrupt notifies the currently focused application (e.g., a web browser, text editor, or any other app) of a 'key pressed' event. The application can then handle this event and respond accordingly, such as by inserting the corresponding character into a text field or triggering a specific action.
+
 
 Interrupt fires [NOT for USB keyboards]
 ---------------------------------------
@@ -105,6 +147,28 @@ the ``Interrupt Descriptor Table`` (IDT) to map the interrupt vectors to
 functions (``interrupt handlers``) which are supplied by the kernel. When an
 interrupt arrives, the CPU indexes the IDT with the interrupt vector and runs
 the appropriate handler. Thus, the kernel is entered.
+
+// continuation
+
+Interrupt Handling in the Operating System:
+
+When the keyboard (or any hardware device) sends signals on its interrupt request line (IRQ), it triggers an interrupt within the computer's hardware.
+
+The interrupt controller, often referred to as the Programmable Interrupt Controller (PIC) in traditional PC architecture, maps this hardware interrupt to an "interrupt vector," which is simply an integer value that identifies the specific interrupt.
+
+The CPU, upon receiving the interrupt signal, consults a data structure called the "Interrupt Descriptor Table" (IDT). The IDT is a part of the operating system's kernel and contains entries for various interrupt vectors.
+
+Each entry in the IDT points to a specific function or routine known as an "interrupt handler." These interrupt handlers are provided by the kernel and are responsible for managing the specific hardware or software interrupt.
+
+When an interrupt arrives, the CPU indexes the IDT with the interrupt vector obtained from the interrupt controller. This indexing process identifies the appropriate interrupt handler associated with that vector.
+
+The CPU then transfers control to the identified interrupt handler routine, effectively "jumping" to that part of the kernel's code. This transition is what's meant by "the kernel is entered."
+
+Inside the interrupt handler, the kernel can perform various tasks related to the specific interrupt. In the case of a keyboard interrupt, the kernel will handle processing the keycode received from the keyboard.
+
+The kernel may perform tasks such as decoding the keycode, determining which key was pressed, and making this information available to the appropriate software layers, such as device drivers or user-level applications.
+
+Once the interrupt handler has completed its tasks, it typically invokes an "interrupt return" instruction, which transfers control back to the point in the program where the interrupt occurred. This allows the CPU to resume executing the previous instructions.
 
 (On Windows) A ``WM_KEYDOWN`` message is sent to the app
 --------------------------------------------------------
@@ -137,6 +201,34 @@ This code looks within the 3rd parameter that was passed to ``SendMessage``
 (``wParam``) and, because it is ``VK_RETURN`` knows the user has hit the ENTER
 key.
 
+
+// continuation
+Further Processing of the Enter Key in Windows:
+
+Once the keyboard input reaches the Windows kernel, the HID transport layer passes the key down event to the "KBDHID.sys" driver. This driver's role is to convert the Human Interface Device (HID) usage, in this case, the keypress, into a scancode. In your example, the scancode is "VK_RETURN," which corresponds to the Enter key and is represented by the value "0x0D."
+
+"KBDHID.sys" interfaces with the "KBDCLASS.sys" driver, known as the keyboard class driver. The responsibility of this driver is to handle all keyboard and keypad input in a secure and standardized manner. It ensures that keyboard input is processed correctly and securely.
+
+After "KBDCLASS.sys" receives the scancode, it may pass the input through any installed third-party keyboard filters, if present, for further processing. These filters can add additional functionality or customization to keyboard input.
+
+The entire process from receiving the keypress to this point happens in kernel mode, which is a privileged mode of the operating system.
+
+"KBDCLASS.sys" then calls into "Win32K.sys," another kernel-mode component of the Windows operating system. "Win32K.sys" is responsible for managing graphical user interface (GUI) elements and user input.
+
+"Win32K.sys" determines which window is currently active by using the "GetForegroundWindow()" API. This API provides the window handle (hWnd) of the active window, which in your case is the browser's address box.
+
+The main Windows "message pump" is responsible for processing messages sent to various windows. It calls "SendMessage(hWnd, WM_KEYDOWN, VK_RETURN, lParam)" to send a message indicating that the Enter key has been pressed. The "lParam" parameter contains information about the keypress, such as the repeat count (0 in this case), the scan code (VK_RETURN), and the state of other keys (e.g., Alt, Shift, Ctrl).
+
+The "SendMessage" API adds the message to a queue associated with the specific window handle (hWnd), in this case, the address box of the browser.
+
+Later, the main message processing function, often referred to as "WindowProc," which is assigned to the "hWnd," is called to process each message in the queue.
+
+In this specific case, the "hWnd" corresponds to an edit control (an input field), and the "WindowProc" for this control has a message handler for "WM_KEYDOWN" messages.
+
+The message handler for "WM_KEYDOWN" examines the wParam parameter, which contains the virtual key code ("VK_RETURN" in this case), and recognizes that the user has pressed the Enter key.
+
+The application or control associated with the edit field can then take appropriate action based on the recognition of the Enter keypress, which may include submitting a form, initiating a search, or triggering other relevant actions.
+
 (On OS X) A ``KeyDown`` NSEvent is sent to the app
 --------------------------------------------------
 
@@ -150,6 +242,27 @@ this queue by threads with sufficient privileges calling the
 handled by, an ``NSApplication`` main event loop, via an ``NSEvent`` of
 ``NSEventType`` ``KeyDown``.
 
+// continuation
+Handling the Enter Key in macOS (OS X):
+
+In macOS (formerly known as OS X), when the user presses the Enter key, the keyboard generates an interrupt signal, which is handled by the I/O Kit (Input/Output Kit) kernel extension (kext) responsible for managing keyboard input.
+
+The keyboard driver within the I/O Kit translates the signal into a key code that corresponds to the Enter key.
+
+This key code is then passed to the macOS WindowServer process. The WindowServer is responsible for managing the graphical user interface (GUI) and handling input events.
+
+The WindowServer, upon receiving the key code, dispatches an event to any appropriate applications. This event is sent through the Mach port, which is a fundamental interprocess communication (IPC) mechanism in macOS.
+
+The event is placed into the event queue of the target application. Applications that are active or listening for input events will have their event queues populated with these events.
+
+Threads within the application with sufficient privileges can call the "mach_ipc_dispatch" function to read events from their event queue. This function allows the application to retrieve and process events.
+
+In the case of user interface events, such as keypresses, the most common mechanism for processing these events is through the main event loop of an "NSApplication" (NextStep Application) object in the application. The NSApplication is a central component in macOS applications and is responsible for handling events and managing the application's lifecycle.
+
+Within the NSApplication's main event loop, events like key presses, including the Enter key, are represented as "NSEvent" objects. The NSEvent object will have a type of "NSEventType" that indicates it is a "KeyDown" event, signifying that a key has been pressed.
+
+The application can then use event handling code to examine the NSEvent, determine that it represents the Enter key press, and take the appropriate action. This might include submitting a form, initiating a search, or triggering other relevant actions within the application's user interface.
+
 (On GNU/Linux) the Xorg server listens for keycodes
 ---------------------------------------------------
 
@@ -161,6 +274,31 @@ sends the character to the ``window manager`` (DWM, metacity, i3, etc), so the
 ``window manager`` in turn sends the character to the focused window.
 The graphical API of the window  that receives the character prints the
 appropriate font symbol in the appropriate focused field.
+
+// continuation
+Handling the Enter Key in X Window System (X11):
+
+In the X Window System (X11), which is commonly used in Unix-like operating systems, including Linux, the handling of the Enter keypress involves several components and layers.
+
+When a graphical X server is running, it uses a generic event driver called "evdev" (Event Device) to capture input events from devices, including keyboards. The "evdev" driver provides a unified interface for input devices.
+
+The X server employs keymaps and rules specific to its configuration to map keycodes to scancodes. Keycodes represent the physical keys on the keyboard, while scancodes represent the sequence of electrical signals generated when a key is pressed.
+
+Once the X server has completed the scancode mapping for the key pressed (in this case, the Enter key), it has the information needed to interpret the keypress correctly.
+
+The X server communicates with the window manager (also known as the "window decorator") that is currently managing the graphical interface. Popular window managers in the X11 environment include DWM, Metacity, i3, and many others.
+
+The window manager receives the keypress event from the X server and determines which window is currently focused or active.
+
+The window manager then forwards the keypress event to the focused window, which is typically the application or program currently in use.
+
+Within the graphical application, the graphical application programming interface (API) processes the received character. It uses the font and rendering capabilities provided by the X11 system to display the appropriate font symbol or character in the focused field.
+
+For example, if you are typing in a text editor or a terminal window, the X11 system ensures that the Enter keypress results in the appropriate behavior, such as inserting a newline character or executing a command.
+
+The graphical API of the application takes care of rendering the character on the screen, updating the user interface, and responding to the Enter keypress based on the context of the application.
+
+
 
 Parse URL
 ---------
@@ -174,6 +312,26 @@ Parse URL
     - ``Resource``  "/"
         Retrieve main (index) page
 
+// continuation
+Parsing the URL Information:
+
+After the user has pressed the Enter key in the browser's address bar, and the Enter keypress has been correctly processed, the browser initiates a request to access the specified URL.
+
+The URL (Uniform Resource Locator) entered by the user in the address bar provides crucial information about how to retrieve the desired web resource. In this case, the URL is dissected into its various components:
+
+Protocol: The protocol specified in the URL is "http." This indicates the use of the "Hyper Text Transfer Protocol," which is the standard protocol for transferring web content over the internet. The "http" protocol is used for retrieving web pages and resources.
+
+Resource: The resource component in the URL is "/." In the context of a URL, the forward slash ("/") typically represents the root directory of a web server. In this case, it indicates the request to retrieve the main or index page of the website, which is often the default page served when the root URL is accessed.
+
+With this information, the browser knows that it needs to make an HTTP request to retrieve the main page of the specified website using the HTTP protocol.
+
+The browser constructs an HTTP request to the web server hosting the website, specifying the protocol and resource path ("/") as part of the request.
+
+The web server, upon receiving the request, processes it based on the protocol (HTTP) and resource path ("/"). It locates the main page associated with the root directory and prepares to send it as the response.
+
+Once the server's response is received by the browser, the content of the main page is rendered in the browser's window, displaying the initial content of the website.
+
+The rendering of the web page typically includes interpreting HTML, CSS, JavaScript, and other web technologies to display text, images, links, and interactive elements on the screen for the user to interact with.
 
 Is it a URL or a search term?
 -----------------------------
@@ -183,6 +341,28 @@ the text given in the address box to the browser's default web search engine.
 In many cases the URL has a special piece of text appended to it to tell the
 search engine that it came from a particular browser's URL bar.
 
+// continuation
+Fallback to Default Web Search:
+
+In cases where the user enters text into the browser's address bar without specifying a protocol (e.g., "http://" or "https://") or a valid domain name (e.g., "www.example.com"), the browser assumes that the input is intended for a web search.
+
+When the browser detects that the input does not resemble a traditional URL, it proceeds to treat the text as a search query rather than a web address.
+
+The browser then uses its configured default search engine to perform a web search based on the entered text. The default search engine is typically a popular search engine like Google, Bing, or Yahoo, but users can often customize this setting.
+
+To inform the search engine that the query originated from the browser's address bar, the browser may append a special piece of text or a parameter to the search query URL. This is often referred to as a "search query string" or "referrer parameter."
+
+The referrer parameter helps the search engine track the source of the search query and may also be used for analytics or user behavior analysis.
+
+The search engine processes the query and returns a search results page listing relevant web pages, images, news articles, and other content that matches the query.
+
+The browser then displays the search results to the user, typically as a list of clickable links and snippets of text, allowing the user to choose which search result to click on for more information.
+
+When the user selects a search result, the browser navigates to the corresponding web page, and the selected page is loaded into the browser's window.
+
+This behavior allows users to perform web searches directly from the browser's address bar without needing to visit a dedicated search engine website separately.
+
+
 Convert non-ASCII Unicode characters in the hostname
 ------------------------------------------------
 
@@ -191,6 +371,26 @@ Convert non-ASCII Unicode characters in the hostname
 * Since the hostname is ``google.com`` there won't be any, but if there were
   the browser would apply `Punycode`_ encoding to the hostname portion of the
   URL.
+
+// continuation
+Hostname Validation and Punycode Encoding:
+
+After the user enters a URL, such as "google.com," the browser checks the hostname part of the URL for characters that are not allowed in domain names.
+
+Domain names are typically composed of characters from the following set: lowercase letters "a" to "z," uppercase letters "A" to "Z," digits "0" to "9," hyphens "-", and periods ".". These characters are part of the ASCII character set.
+
+In the case of "google.com," all characters in the hostname are valid according to these rules, so no further action is needed.
+
+However, if the hostname contains characters that are not part of this set, such as accented characters, special symbols, or characters from non-Latin scripts (e.g., Cyrillic, Chinese, Arabic), the browser must ensure that these characters are properly encoded to ensure compatibility with DNS (Domain Name System) and web standards.
+
+To encode non-ASCII characters in domain names, browsers use a standard called Punycode. Punycode is an algorithm that converts non-ASCII characters into a format that consists only of ASCII characters, digits, and hyphens. This encoding ensures that domain names with non-standard characters can be properly resolved by DNS servers and used in URLs.
+
+For example, if a user enters a URL with a non-ASCII character in the hostname, such as "café.com," the browser will internally convert it to Punycode, resulting in something like "xn--caf-dma.com." This Punycode representation is what's used for DNS resolution and to form the final URL for fetching the web page.
+
+The user, however, will continue to see and interact with the domain name in its original form, "café.com," in the browser's address bar, thanks to the browser's ability to display Punycode-encoded domain names in their human-readable form.
+
+
+
 
 Check HSTS list
 ---------------
@@ -205,6 +405,29 @@ Check HSTS list
   single HTTP request could potentially leave the user vulnerable to a
   `downgrade attack`_, which is why the HSTS list is included in modern web
   browsers.)
+
+// continuation
+
+HTTP Strict Transport Security (HSTS) and Preloaded HSTS List:
+
+When the browser is about to send a request to a website, it checks for the presence of HTTP Strict Transport Security (HSTS) policies. HSTS is a web security policy mechanism that helps to protect users from various types of attacks and improve the security of web communications.
+
+HSTS ensures that a website can only be accessed via a secure HTTPS connection, even if the user initially enters an HTTP URL in the address bar. It helps prevent potential eavesdropping, man-in-the-middle attacks, and other security vulnerabilities associated with unencrypted HTTP connections.
+
+To implement HSTS, websites include an HTTP response header in their server responses, indicating that the website should only be accessed via HTTPS. For example, a website may include the following header: Strict-Transport-Security: max-age=31536000.
+
+When a user first visits a website that employs HSTS, the initial request may still be sent over HTTP. However, the server includes the HSTS header in its response, instructing the browser to only use HTTPS for future requests to that website.
+
+To enhance security and prevent potential downgrade attacks (where an attacker tries to force a user to use an insecure HTTP connection instead of HTTPS), modern web browsers maintain a "preloaded HSTS list."
+
+The preloaded HSTS list contains websites that have requested that all communication with them occur over HTTPS exclusively. Being on this list means that the browser will automatically use HTTPS when communicating with these websites, even if the user initially types "http://" in the address bar.
+
+If the website being accessed is on the preloaded HSTS list, the browser automatically sends the request via HTTPS, ensuring a secure connection from the start.
+
+If the website is not on the preloaded HSTS list, the initial request is sent via HTTP. However, the server's response may include the HSTS header, instructing the browser to use HTTPS for subsequent requests.
+
+The preloaded HSTS list is periodically updated by browser vendors to include new websites that have requested HSTS protection and to remove websites that no longer require it.
+
 
 DNS lookup
 ----------
@@ -223,6 +446,32 @@ DNS lookup
   ``ARP process`` below for the DNS server.
 * If the DNS server is on a different subnet, the network library follows
   the ``ARP process`` below for the default gateway IP.
+
+// continuation
+
+DNS Resolution Process in the Browser:
+
+When a user enters a URL in the browser's address bar, the browser needs to resolve the domain name (e.g., "www.example.com") to an IP address to locate the web server and establish a connection. This DNS (Domain Name System) resolution process typically involves the following steps:
+
+DNS Cache Check: The browser first checks its internal DNS cache to see if it already has a recent record of the domain name and its corresponding IP address. Cached records are stored for a certain period to improve DNS resolution speed.
+
+Local Hosts File: If the domain is not found in the cache, the browser checks the local "hosts" file on the user's computer. This file can contain manual mappings of domain names to IP addresses. If a match is found in the "hosts" file, the browser uses that IP address for the DNS resolution.
+
+gethostbyname Library Function: If the domain name is not cached and not found in the local "hosts" file, the browser calls the gethostbyname library function. The specific library function used may vary by the operating system.
+
+Local DNS Lookup: The gethostbyname function checks if the hostname can be resolved by referencing entries in the local "hosts" file (again) before attempting DNS resolution. This step ensures that any local host mappings take precedence.
+
+DNS Server Query: If the hostname cannot be resolved locally or in the "hosts" file, the gethostbyname function initiates a request to the DNS server configured in the network stack. This DNS server is often provided by the local router or the ISP's caching DNS server, depending on the network configuration.
+
+ARP Process for DNS Server (Local Subnet): If the DNS server is on the same subnet as the user's computer, the network library follows the ARP (Address Resolution Protocol) process to determine the physical MAC address corresponding to the DNS server's IP address. ARP is used for local network communication to discover MAC addresses based on IP addresses.
+
+ARP Process for Default Gateway (Different Subnet): If the DNS server is on a different subnet, the network library follows the ARP process for the default gateway's IP address instead. The default gateway is the router that connects the local subnet to external networks.
+
+DNS Server Request: Once the physical MAC address is resolved (or if the DNS server is on the same subnet and ARP is not needed), the browser sends a DNS request to the DNS server, specifying the domain name it wants to resolve.
+
+DNS Server Response: The DNS server processes the request and provides a DNS response containing the IP address associated with the requested domain name.
+
+DNS Cache Update: The browser caches the DNS response locally for future use, speeding up subsequent requests to the same domain.
 
 
 ARP process
@@ -297,6 +546,49 @@ the default gateway it can resume its DNS process:
   requested and that flows up the list of DNS servers until the SOA is reached,
   and if found an answer is returned.
 
+Address Resolution Protocol (ARP) and DNS Resolution:
+
+When a computer needs to send an ARP broadcast to resolve an IP address to a MAC address, it follows a sequence of steps. This process is important for local network communication and is especially relevant when the target IP address is either on the local subnet or on the default gateway's subnet. Here's how it works:
+
+ARP Cache Check: Initially, the network stack library checks its ARP cache for an existing entry that maps the target IP address to a MAC address. If such an entry exists, the library can use the cached information directly, avoiding the need for an ARP broadcast.
+
+ARP Cache Miss: If the ARP entry is not found in the cache, the network stack proceeds with ARP resolution:
+
+a. Route Table Lookup: The network stack examines the route table to determine if the target IP address is on any of the local subnets defined in the route table. If a matching subnet is found, the network stack selects the network interface associated with that subnet for the ARP request. If no matching subnet is found, it selects the interface corresponding to the subnet of the default gateway.
+
+b. MAC Address Lookup: The network stack looks up the MAC address of the selected network interface.
+
+c. ARP Request: The network library constructs an ARP request, which is a Layer 2 broadcast packet. This ARP request is sent to the local network segment to discover the MAC address associated with the target IP address.
+
+- Sender MAC: MAC address of the interface sending the ARP request
+- Sender IP: IP address of the interface sending the ARP request
+- Target MAC: Broadcast address (FF:FF:FF:FF:FF:FF)
+- Target IP: IP address being resolved (the target IP)
+
+
+Depending on the network topology and hardware:
+
+Directly Connected: If the computer is directly connected to the router, the router responds with an ARP Reply containing the MAC address mapping.
+
+Hub: If the computer is connected to a hub (a network device that broadcasts data to all connected devices), the hub broadcasts the ARP request to all other ports. If the router is on the same network segment, it responds with an ARP Reply.
+
+Switch: If the computer is connected to a switch, the switch uses its local CAM/MAC table to determine which port has the MAC address being sought. If the switch doesn't have an entry for the MAC address, it may rebroadcast the ARP request to all other ports. If the router is on the same network segment, it responds with an ARP Reply.
+
+ARP Reply:
+
+Sender MAC: MAC address of the target device (e.g., router)
+Sender IP: IP address of the target device
+Target MAC: MAC address of the interface sending the ARP request
+Target IP: IP address being resolved
+Once the network library has obtained the MAC address corresponding to either the DNS server or the default gateway, it can proceed with the DNS resolution process:
+
+The DNS client establishes a socket to UDP port 53 on the DNS server, using a source port number above 1023.
+
+If the DNS response size exceeds a certain limit, the DNS client may switch to using TCP instead of UDP.
+
+If the local or ISP DNS server does not have the requested DNS information, a recursive search is initiated, which involves querying a sequence of DNS servers until the Start of Authority (SOA) is reached. If the SOA is found, an answer is returned to the client.
+
+
 Opening of a socket
 -------------------
 Once the browser receives the IP address of the destination server, it takes
@@ -367,6 +659,49 @@ This send and receive happens multiple times following the TCP connection flow:
    * The other sides ACKs the FIN packet and sends its own FIN
    * The closer acknowledges the other side's FIN with an ACK
 
+
+// continue
+
+TCP Connection Flow:
+
+When the browser has obtained the IP address of the destination server and the desired port number (typically port 80 for HTTP and port 443 for HTTPS) from the URL, it initiates a TCP connection to the server. This involves several steps:
+
+Socket Creation: The browser makes a system library call to create a TCP socket. It specifies the address family (AF_INET or AF_INET6) and the socket type (SOCK_STREAM) for a TCP stream.
+
+Transport Layer: At the Transport Layer, a TCP segment is constructed. The destination port (e.g., 80 for HTTP) is added to the header, and a source port is chosen from within the kernel's dynamic port range. This source port serves as the identifier for this particular communication session.
+
+Network Layer: The TCP segment is encapsulated in an IP packet. The IP header is formed, with the IP address of the destination server and the IP address of the current machine.
+
+Link Layer: At the Link Layer, a frame header is added, which includes the MAC address of the machine's Network Interface Card (NIC) and the MAC address of the local router (gateway). If the MAC address of the gateway is not known, an ARP query is broadcast to find it.
+
+At this point, the packet is ready to be transmitted over the physical network medium, which can be Ethernet, WiFi, cellular data networks, or other forms of network technology. The packet will traverse local networks, possibly through modems, routers, switches, and various networking equipment, depending on the specific network topology.
+
+For many home or small business internet connections, the packet might pass through a modem that converts digital data into an analog signal suitable for transmission over telephone lines, cable connections, or wireless telephony connections. On the receiving end, another modem converts the analog signal back into digital data for processing.
+
+For larger businesses or modern residential connections with direct fiber or Ethernet connections, the data remains in digital form and is passed directly to the next network node for processing.
+
+The packet will eventually reach the router managing the local subnet and then continue its journey through various routers within autonomous systems (ASes), other ASes, and finally to the destination server. Each router along the way reads the destination address from the IP header and routes the packet to the appropriate next hop.
+
+During this journey, the Time to Live (TTL) field in the IP header is decremented by one for each router that processes the packet. If the TTL field reaches zero or if a router's queue is full (possibly due to network congestion), the packet may be dropped.
+
+The send-and-receive process occurs multiple times during the TCP connection flow, following these key steps:
+
+Connection Establishment:
+
+The client selects an Initial Sequence Number (ISN) and sends a packet to the server with the SYN bit set to indicate it is setting the ISN.
+The server receives the SYN packet, chooses its own ISN, sets SYN to indicate it is choosing its ISN, and acknowledges the client's ISN with the ACK flag.
+The client acknowledges the connection by sending a packet with increased sequence and acknowledgment numbers and the ACK flag set.
+Data Transfer:
+
+Data is transferred with each side increasing its sequence number as it sends data.
+The other side acknowledges receipt of the data packets by sending ACK packets with acknowledgment numbers.
+Connection Closure:
+
+To close the connection, the party initiating the closure (the closer) sends a FIN packet.
+The other side acknowledges the FIN packet, sends its own FIN packet, and the closer acknowledges the other side's FIN with an ACK.
+This TCP connection flow ensures reliable and ordered data transfer between the client (browser) and the server, enabling the successful retrieval of web pages and other resources over the internet.
+
+
 TLS handshake
 -------------
 * The client computer sends a ``ClientHello`` message to the server with its
@@ -397,6 +732,43 @@ TLS handshake
 * From now on the TLS session transmits the application (HTTP) data encrypted
   with the agreed symmetric key.
 
+// continuation
+
+TCP Connection Flow (Continued):
+
+Connection Termination (Continued):
+
+After the initial FIN and ACK exchange, both sides enter a semi-closed state. This means they can send data but not receive it. They wait for an acknowledgment of the FIN from the other side.
+When the other side acknowledges the FIN with an ACK, it enters its own semi-closed state.
+Once both sides have acknowledged the FIN, they proceed to a fully closed state. The connection is considered closed, and no more data can be exchanged.
+Connection Reset:
+
+In some cases, a connection may be forcibly terminated. This can happen if a party sends a RST (Reset) packet, indicating an abrupt and unexpected termination. This can occur due to network issues, misconfiguration, or other reasons.
+Connection Timeout:
+
+If a response from the server (or client) does not arrive within a certain period, a timeout occurs. The connection may be closed, and the application layer may be notified of the timeout event.
+Error Handling and Retransmission:
+
+Throughout the connection, error detection and handling mechanisms, including checksums and sequence number tracking, ensure data integrity and reliability.
+If packets are lost or not acknowledged, the sender may retransmit data to ensure it arrives at the destination.
+Flow Control:
+
+TCP employs flow control mechanisms to prevent congestion and ensure that data is delivered at a pace that the receiver can handle. This involves the use of window sizes to control the amount of data that can be in transit at any given time.
+Congestion Control:
+
+TCP is sensitive to network congestion and can dynamically adjust its transmission rate to alleviate congestion. This is done through algorithms like TCP congestion control (e.g., TCP Reno, TCP Cubic) that adapt the sending rate based on network conditions.
+Multiplexing and Demultiplexing:
+
+The source port in the TCP header, along with the destination port, helps demultiplex incoming packets to the correct application or process on the receiving side. This allows multiple concurrent connections to share the same network interface.
+Dynamic Port Allocation:
+
+When a connection is established, the source port is dynamically allocated from the available port range in the kernel. This allows multiple applications to use different source ports for their communications.
+Acknowledgment Timing:
+
+TCP uses various algorithms to determine when to acknowledge received data. This helps optimize the efficiency of data transfer by minimizing unnecessary acknowledgments.
+
+
+
 If a packet is dropped
 ----------------------
 
@@ -413,6 +785,32 @@ control`_. This varies depending on the sender; the most common algorithms are
 * After reaching the slow-start threshold, the window increases additively for
   each packet acknowledged. If a packet is dropped, the window reduces
   exponentially until another packet is acknowledged.
+
+// continuation
+
+TCP Congestion Control (Continued):
+
+When transmitting data over a network, especially a congested or unreliable one, it's crucial to manage the flow of data effectively to avoid overloading the network and ensure reliable delivery. TCP congestion control algorithms, such as Cubic and New Reno, play a vital role in achieving this.
+
+Here's how TCP congestion control works, taking into consideration dropped packets:
+
+Congestion Window (CWND): The sender starts by choosing an initial congestion window size based on the Maximum Segment Size (MSS) of the connection. The CWND determines the number of unacknowledged packets that can be in transit at any given time.
+
+Slow Start: Initially, for each packet that is successfully acknowledged, the sender doubles the size of the congestion window. This phase is known as "slow start." In some implementations, the slow-start threshold may be adaptive, allowing for more dynamic control based on network conditions.
+
+Congestion Avoidance: After reaching the slow-start threshold, the sender transitions into the "congestion avoidance" phase. During congestion avoidance, the congestion window increases additively for each packet that is acknowledged. This more conservative approach helps prevent rapid and aggressive increases in the data transmission rate.
+
+Packet Loss Detection: When a packet is lost, either due to network congestion or other factors, the sender detects this loss when it does not receive an acknowledgment (ACK) within a reasonable timeframe.
+
+Exponential Backoff: Upon detecting packet loss, the sender reacts by reducing the congestion window size. This reduction typically follows an exponential backoff algorithm, where the congestion window is halved or reduced by a certain factor. The goal is to alleviate congestion by reducing the rate of data transmission.
+
+Retransmission: To recover from packet loss, the sender retransmits the lost packets. This process ensures that the missing data is retransmitted and eventually acknowledged by the receiver.
+
+Adaptive Algorithms: Different TCP congestion control algorithms may have variations in their behavior. For example, Cubic uses a cubic function to determine the congestion window, while New Reno is an extension of the original Reno congestion control algorithm with some refinements.
+
+The choice of which congestion control algorithm to use can depend on the operating system and network conditions. Modern operating systems often use Cubic as the default congestion control algorithm because it offers improved performance in a variety of network scenarios.
+
+
 
 HTTP protocol
 -------------
@@ -480,6 +878,30 @@ resolving the other domain, and follows all steps up to this point for that
 domain. The ``Host`` header in the request will be set to the appropriate
 server name instead of ``google.com``.
 
+
+// continuation
+
+Once the web browser has received the HTML content of the main web page, it proceeds to parse the HTML. Within the HTML, there may be references (such as URLs) to additional resources needed to render the page properly. These resources can include images, stylesheets (CSS), JavaScript files, icons (favicon.ico), and more.
+
+For each referenced resource, the web browser repeats the process of sending an HTTP request to the server to retrieve that specific resource. The format of these requests is as follows:
+
+GET /$(URL relative to www.google.com) HTTP/1.1
+Host: $(appropriate server name)
+[other headers]
+
+The GET request is used to retrieve the resource.
+The URL is relative to the main server (www.google.com), and it specifies the path to the resource on the server.
+The Host header is set to the appropriate server name for the specific resource's domain. This ensures that the request is directed to the correct server if the resource is hosted on a different domain.
+The server processes each resource request in a manner similar to how it handled the initial page request. It responds with an HTTP status code, headers, and the resource's content (or a "304 Not Modified" response if the resource has not been modified since the last retrieval). The browser then caches the retrieved resources for future use.
+
+Handling Cross-Domain Resources:
+
+If the HTML page references resources hosted on different domains (cross-origin resources), the web browser follows a similar process as described above for each of those domains. It initiates DNS resolution for the new domain, establishes a connection to the corresponding server, and sends resource-specific requests.
+
+The Host header in the request is set to the appropriate server name for the cross-origin domain, ensuring that the request is routed correctly. This process allows the web browser to retrieve resources from multiple domains and integrate them into the rendered web page.
+
+
+
 HTTP Server Request Handle
 --------------------------
 The HTTPD (HTTP Daemon) server is the one handling the requests/responses on
@@ -510,6 +932,34 @@ and IIS for Windows.
   is running on PHP, the server uses PHP to interpret the index file, and
   streams the output to the client.
 
+// continuation
+
+HTTP Server Processing (Continued):
+
+Once the HTTP server (commonly Apache, nginx, or IIS) receives an HTTP request from the client, it goes through a series of steps to process the request and generate a response:
+
+HTTP Request Method: The server examines the HTTP request method included in the request. Common HTTP request methods include GET, HEAD, POST, PUT, PATCH, DELETE, CONNECT, OPTIONS, or TRACE. In the case of a URL entered directly into the address bar, the method is typically GET.
+
+Domain and Requested Path/Page: The server extracts the domain name from the request (in this case, "google.com") and determines the requested path or page. If no specific path/page is requested, the default path (often "/") is assumed.
+
+Virtual Host Verification: The server verifies whether there is a Virtual Host configuration that matches the domain name (in this case, "google.com"). Virtual Hosts allow a single server to host multiple websites with different domain names. The server ensures that it can correctly route the request to the appropriate website.
+
+HTTP Method and Access Control: The server checks whether the Virtual Host is configured to accept the HTTP request method (e.g., GET). It also verifies that the client making the request is allowed to use this method. Access control mechanisms, such as IP filtering or authentication, may be in place to restrict certain actions.
+
+Rewrite Rules (Optional): If the server has a rewrite module installed (e.g., mod_rewrite for Apache or URL Rewrite for IIS), it attempts to match the incoming request against configured rewrite rules. Rewrite rules are used to modify or redirect URLs based on specific patterns or conditions. If a matching rule is found, the server applies the rule to rewrite the request.
+
+Content Retrieval: After determining the appropriate configuration and verifying access permissions, the server goes to retrieve the content that corresponds to the request. In this case, the requested path is "/", which typically refers to the main file or the default page of the website. However, some configurations may override this behavior.
+
+File Parsing and Handler: The server parses the retrieved file according to its assigned handler. For example, if the website is running on PHP, the server uses the PHP interpreter to process the index file. This means that any server-side scripting or dynamic content generation specified in the file (e.g., PHP code) is executed. The resulting output is then sent to the client as part of the HTTP response.
+
+HTTP Response Generation: Based on the processing of the file and any server-side logic, the server generates an HTTP response. This response includes an HTTP status code (e.g., "200 OK"), response headers, and the actual content of the web page.
+
+Sending the Response: The server sends the complete HTTP response back to the client over the established network connection. This response includes the HTML content of the requested web page, along with any associated resources (e.g., images, stylesheets, JavaScript files) if referenced in the HTML.
+
+Connection Handling: Depending on the HTTP server's configuration and the client's request, the server may keep the connection open for potential reuse or close it immediately after sending the response. Connection reuse can improve performance for subsequent requests.
+
+
+
 Behind the scenes of the Browser
 ----------------------------------
 
@@ -519,6 +969,39 @@ to the browser it undergoes the below process:
 * Parsing - HTML, CSS, JS
 * Rendering - Construct DOM Tree → Render Tree → Layout of Render Tree →
   Painting the render tree
+
+// continuation
+
+Parsing and Rendering:
+
+Once the browser receives the web resources (HTML, CSS, JavaScript, images, etc.) from the server, it proceeds to process and render the web page. This involves several key steps:
+
+Parsing HTML: The browser parses the HTML document to create a Document Object Model (DOM) tree. The DOM tree represents the structure and content of the web page as a hierarchical tree of objects. Each HTML element, attribute, and text node is represented in the DOM tree.
+
+Parsing CSS: The browser parses the CSS (Cascading Style Sheets) files associated with the web page to create a CSS Object Model (CSSOM). The CSSOM defines the styles and layout rules that will be applied to the elements in the DOM tree. The browser combines the DOM tree and the CSSOM to create a Render Tree.
+
+Constructing the Render Tree: The Render Tree is a critical internal representation of the web page's visual content. It includes only the elements that will be displayed on the screen. Elements that are hidden or not visible (e.g., through CSS properties like display: none) are typically excluded from the Render Tree. The Render Tree is constructed by combining information from the DOM tree and the CSSOM.
+
+Layout of the Render Tree (Reflow): The browser calculates the layout and positioning of each element in the Render Tree. This process is often referred to as "reflow" or "layout." It involves determining the size and position of elements on the web page relative to the viewport. Changes in the layout can trigger subsequent reflows.
+
+Painting the Render Tree: After layout calculations are complete, the browser paints the content onto the screen. This process is called "painting" or "rendering." It involves rendering pixels on the screen based on the visual properties defined in the Render Tree. This step includes rendering text, images, backgrounds, borders, and other visual elements.
+
+Rendering Engine Optimization: Modern browsers often employ various optimization techniques to enhance rendering speed and efficiency. These optimizations include rendering only the visible portion of the web page (viewport), caching rendered elements, and utilizing hardware acceleration.
+
+Additional Processes:
+
+In addition to the core parsing and rendering processes, the browser may also perform other tasks:
+
+JavaScript Execution: If the web page includes JavaScript code, the browser executes it. JavaScript can dynamically modify the DOM, manipulate CSS styles, and perform actions based on user interactions or events. JavaScript execution can also affect the rendering process.
+
+Asynchronous Loading: To improve page load times, browsers often employ techniques like parallel resource loading and asynchronous loading of scripts and resources. This allows certain resources to load in the background without blocking the rendering of the page.
+
+Caching: Browsers cache resources to reduce redundant requests to the server. Cached resources can be reused for subsequent visits to the same web page, speeding up page load times.
+
+Security Checks: Browsers also perform security checks, including Same-Origin Policy enforcement, to protect against cross-site scripting (XSS) and other security vulnerabilities.
+
+Once these processes are complete, the web page is fully rendered and displayed to the user. Users can then interact with the page, navigate to other pages, and perform various actions within the browser.
+
 
 Browser
 -------
